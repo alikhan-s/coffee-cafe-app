@@ -5,8 +5,24 @@ const MenuItem = require('../models/MenuItem');
 // @access  Public
 const getMenu = async (req, res, next) => {
     try {
-        const menuItems = await MenuItem.find({});
-        res.json(menuItems);
+        const pageSize = Number(req.query.pageSize) || 10;
+        const page = Number(req.query.page) || 1;
+
+        const keyword = req.query.keyword
+            ? {
+                name: {
+                    $regex: req.query.keyword,
+                    $options: 'i',
+                },
+            }
+            : {};
+
+        const count = await MenuItem.countDocuments({ ...keyword });
+        const menuItems = await MenuItem.find({ ...keyword })
+            .limit(pageSize)
+            .skip(pageSize * (page - 1));
+
+        res.json({ menuItems, page, pages: Math.ceil(count / pageSize), total: count });
     } catch (error) {
         next(error);
     }
